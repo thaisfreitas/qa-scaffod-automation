@@ -43,11 +43,21 @@ The owning team is the `owner` annotation on the test.
 
 ## Trace Viewer
 
-Traces are `retain-on-failure`. The zip lands under `test-results/`. Open it with:
+Traces are `retain-on-failure`. The zip lands under `test-results/`. Open it in the viewer with:
 
 ```bash
 npx playwright show-trace path/to/trace.zip
 ```
+
+An agent can read the same zip without a browser. The skill is `.cursor/skills/playwright-trace/SKILL.md`, refreshed with `npm run trace:install-skill` after a Playwright upgrade.
+
+```bash
+npx playwright trace open test-results/<test>/trace.zip
+npx playwright trace actions --errors-only
+npx playwright trace close
+```
+
+Use `failureClass` in `reports/ci-summary.md` to choose the next command. `locator_not_found` looks at `trace snapshot <action-id> --phase before`. `assertion` uses `--phase after`. `timeout_or_network` uses `trace requests --failed` and `trace console --errors-only`.
 
 Screenshots are `only-on-failure`. Video uses the same retain-on-failure policy as traces.
 

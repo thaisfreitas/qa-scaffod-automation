@@ -17,7 +17,8 @@
     "test:regression": "playwright test --grep @regression --grep-invert @quarantine",
     "test:quarantine": "playwright test --grep @quarantine",
     "generate:test": "tsx scripts/create-test.ts",
-    "flaky:sync": "tsx scripts/flaky-manager.ts"
+    "flaky:sync": "tsx scripts/flaky-manager.ts",
+    "trace:install-skill": "mkdir -p .cursor/skills/playwright-trace && cp node_modules/playwright-core/lib/tools/skills/playwright-trace/SKILL.md .cursor/skills/playwright-trace/SKILL.md"
   },
   "devDependencies": {
     "@eslint/js": "^9",

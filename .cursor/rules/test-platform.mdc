@@ -15,3 +15,4 @@ Follow these constraints when creating or editing tests. The authoring workflow 
 - On Automation Exercise these controls are not links: "Logged in as", "Add to cart", and "Proceed To Checkout". Match the visible text. Reuse `AuthPage`, `ProductsPage`, and `CartPage` before writing a new locator.
 - Do not copy the synthetic flake in `tests/quarantine/playground.quarantine.spec.ts`.
 - `@quarantine` drops `@api` and `@ui`. It does not block merge.
+- On a UI failure, open `test-results/**/trace.zip` with the `playwright-trace` skill before rewriting a locator. `reports/ci-summary.md` names the failure class.

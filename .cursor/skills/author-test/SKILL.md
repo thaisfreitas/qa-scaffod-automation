@@ -61,10 +61,10 @@ Run only the new spec:
 npx playwright test <path> --project=<api|ui|quarantine>
 ```
 
-Read `reports/ci-summary.md`.
+Read `reports/ci-summary.md`. If the spec failed and a `trace.zip` exists under `test-results/`, follow `.cursor/skills/playwright-trace/SKILL.md` before editing again. Open that zip, then close it when you are done.
 
-- `locator_not_found`: fix the locator and run the spec again.
-- `assertion`: fix the expectation. Do not weaken it to hide a wrong contract.
-- `timeout_or_network`: stop and report that the site did not respond. Do not mock the API.
+- `locator_not_found`: `npx playwright trace actions --errors-only`, then `npx playwright trace snapshot <action-id> --phase before`.
+- `assertion`: `npx playwright trace snapshot <action-id> --phase after`. Do not weaken the expectation to hide a wrong contract.
+- `timeout_or_network`: `npx playwright trace requests --failed` and `npx playwright trace console --errors-only`. Stop and report that the site did not respond. Do not mock the API.
 
 Report the layer you chose, the file path, and the command result.

@@ -57,6 +57,18 @@ The `author-test` skill (`.cursor/skills/author-test/SKILL.md`) then:
 
 A short rule in `.cursor/rules/test-platform.mdc` is always on, so any agent in this repo keeps one layer tag, refuses a shared user, and reuses the page objects. The full authoring rules are in [docs/CONTRIBUTING_TESTS.md](docs/CONTRIBUTING_TESTS.md).
 
+## Ask the agent to explain a failure
+
+Traces are kept on failure. The zip is `test-results/**/trace.zip`. Example prompt:
+
+```text
+The checkout test failed. Open its trace and tell me which action broke.
+```
+
+The `playwright-trace` skill (`.cursor/skills/playwright-trace/SKILL.md`) reads that zip from the terminal: failed actions, the DOM at that step, failed requests, and console errors. It does not open the Trace Viewer. Read `reports/ci-summary.md` first. `failureClass` decides the first command: a missing locator looks at the DOM before the action, an assertion looks at the DOM after it, and a timeout looks at failed requests and console errors.
+
+`npm run trace:install-skill` recopies the skill shipped with the installed Playwright into `.cursor/skills/playwright-trace/`. `npx playwright trace install-skill` writes a Claude copy under `.claude/skills/` and does not update the Cursor skill.
+
 ## Where things live
 
 - `src/fixtures` — `apiClient`, `testUser`, and lazy page objects
@@ -66,6 +78,7 @@ A short rule in `.cursor/rules/test-platform.mdc` is always on, so any agent in 
 - `scripts` — `generate:test` and `flaky:sync`
 - `tests` — API, UI, and quarantine suites
 - `.cursor/skills/author-test` — the agent that writes a new test
+- `.cursor/skills/playwright-trace` — the agent that inspects a failure trace
 - `.cursor/rules/test-platform.mdc` — the constraints every agent in this repo follows
 - `.github/workflows/quality-gate.yml` — the merge pipeline
 
