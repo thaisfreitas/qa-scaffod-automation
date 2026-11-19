@@ -1,0 +1,17 @@
+---
+description: Constraints for authoring tests on this platform
+alwaysApply: true
+---
+
+# Test platform
+
+Follow these constraints when creating or editing tests. The authoring workflow is in `.cursor/skills/author-test/SKILL.md`.
+
+- One layer tag per test: `@api`, `@ui`, or `@quarantine`. A hybrid flow is `@ui` only. Adding `@api` as well runs it in the API project.
+- Import `test` and `expect` from `src/fixtures/index.ts`. Use `Tags` and `meta(owner)` from `src/config/tags.ts`.
+- Request `testUser` only when the test needs an account. Never hardcode an email or password.
+- Public contract checks use `apiClient` only. `pages` is what opens the browser.
+- Locators are `getByRole`, `getByLabel`, or `getByTestId`. `testIdAttribute` is `data-qa`. Login ids are `login-email`, `login-password`, and `login-button`.
+- On Automation Exercise these controls are not links: "Logged in as", "Add to cart", and "Proceed To Checkout". Match the visible text. Reuse `AuthPage`, `ProductsPage`, and `CartPage` before writing a new locator.
+- Do not copy the synthetic flake in `tests/quarantine/playground.quarantine.spec.ts`.
+- `@quarantine` drops `@api` and `@ui`. It does not block merge.

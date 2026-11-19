@@ -12,6 +12,10 @@ Use a hybrid test when the UI must show data the API just seeded. Tag hybrid tes
 
 ## Generate
 
+Ask Cursor to add the test, naming the behavior, the domain, and the risk. The `author-test` skill runs the generator, fills the scaffold, and runs the new spec. The always-on rule in `.cursor/rules/test-platform.mdc` blocks a shared user, a second layer tag, and a CSS selector. See the README section "Ask the agent to write the test".
+
+You can still generate the file yourself:
+
 ```bash
 npm run generate:test
 npm run generate:test -- --domain checkout --layer hybrid --risk critical --name adds-a-product
