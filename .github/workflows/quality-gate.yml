@@ -1,0 +1,178 @@
+name: Quality Gate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  static-and-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run test:smoke
+      - run: npm run flaky:sync
+      - name: Publish job summary
+        if: always()
+        run: |
+          if [ -f reports/ci-summary.md ]; then
+            cat reports/ci-summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results
+          path: test-results/
+          if-no-files-found: ignore
+
+  regression:
+    needs: static-and-smoke
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    env:
+      PW_BLOB: "1"
+      PW_SHARD: ${{ matrix.shard }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run regression shard
+        run: npx playwright test --grep @regression --grep-invert @quarantine --shard=${{ matrix.shard }}/3
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: blob-report-${{ matrix.shard }}
+          path: blob-report/
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: health-${{ matrix.shard }}
+          path: |
+            reports/test-health-shard-*.json
+            reports/ci-summary-shard-*.md
+          if-no-files-found: warn
+
+  merge-reports:
+    needs: regression
+    if: always() && needs.regression.result != 'cancelled'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: blob-report-*
+          path: all-blob-reports
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: health-*
+          path: reports
+          merge-multiple: true
+      - run: npx playwright merge-reports --reporter html ./all-blob-reports
+      - run: npm run flaky:sync
+      - name: Concatenate shard summaries
+        if: always()
+        run: |
+          mkdir -p reports
+          if [ ! -f reports/ci-summary.md ]; then
+            {
+              echo "# Test health"
+              echo
+              shopt -s nullglob
+              files=(reports/ci-summary-shard-*.md)
+              if [ ${#files[@]} -eq 0 ]; then
+                echo "_None._"
+              else
+                cat "${files[@]}"
+              fi
+            } > reports/ci-summary.md
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: html-report
+          path: playwright-report/
+          if-no-files-found: warn
+      - name: Publish job summary
+        if: always()
+        run: |
+          if [ -f reports/ci-summary.md ]; then
+            cat reports/ci-summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  # Not a required check. Quarantine tracks flake recovery without blocking the pull request.
+  quarantine:
+    needs: static-and-smoke
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:quarantine
+      - run: npm run flaky:sync
+      - name: Publish job summary
+        if: always()
+        run: |
+          if [ -f reports/ci-summary.md ]; then
+            cat reports/ci-summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quarantine-results
+          path: |
+            test-results/
+            reports/flaky-registry.json
+          if-no-files-found: ignore
